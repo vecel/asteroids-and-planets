@@ -4,6 +4,7 @@ import pygame
 
 from planet import Planet
 from asteroid import Asteroid
+import calcs
 
 WIDTH, HEIGHT = 1200, 750
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -15,22 +16,24 @@ BACKGROUND_COLOR = (121, 121, 200)
 # Sample
 PLANETS = [
     Planet((67, 26, 9), 800, 0, 60, 300),
-    Planet((67, 26, 9), 0, 400, 60, 200),
+    Planet((67, 225, 9), 0, 400, 60, -200),
     # Planet((90, 80, 137), 400, 80, 80, 1000)
 ]
 CONSTANT_G = 100
+FINISH, INIT, RUNNING = range(3)
 
-
+MAX_INIT_VELOCITY = 8
+INIT_VELOCITY_RADIUS = 300
 
 def handle_forces(asteroid: Asteroid):
     acceleration_x = 0
     acceleration_y = 0
 
     for planet in PLANETS:
-        dist = math.sqrt((asteroid.x - planet.x)**2 + (asteroid.y - planet.y)**2)
-        sin = (planet.y - asteroid.y) / dist
-        cos = (planet.x - asteroid.x) / dist
-        
+        dist = calcs.dist(planet.x, planet.y, asteroid.x, asteroid.y)
+        sin = calcs.sin(planet.x, planet.y, asteroid.x, asteroid.y)
+        cos = calcs.cos(planet.x, planet.y, asteroid.x, asteroid.y)
+
         acceleration_x += CONSTANT_G * planet.mass * cos / (dist ** 2)
         acceleration_y += CONSTANT_G * planet.mass * sin / (dist ** 2)
 
@@ -56,6 +59,19 @@ def handle_collisions(asteroid: Asteroid):
         if asteroid.radius + planet.radius >= dist:
             asteroid.collide = True
 
+def handle_asteroid_initial_velocity(asteroid: Asteroid):
+    click_pos = pygame.mouse.get_pos()
+    dist = calcs.dist(asteroid.x, asteroid.y, click_pos[0], click_pos[1])
+    init_vel = 0
+
+    if dist > INIT_VELOCITY_RADIUS:
+        init_vel = MAX_INIT_VELOCITY
+    else:
+        init_vel = dist * (MAX_INIT_VELOCITY/INIT_VELOCITY_RADIUS)
+
+    ratio = init_vel / dist
+    asteroid.set_velocity(ratio * (click_pos[0]-asteroid.x), ratio * (click_pos[1]-asteroid.y))
+
 def draw_window(asteroid: Asteroid):
     WINDOW.fill(BACKGROUND_COLOR)
 
@@ -75,26 +91,37 @@ def update(asteroid: Asteroid):
 
 def main():
 
-    pygame.init()
-    pygame.display.set_caption(CAPTION)
-
-    asteroid = Asteroid(x=400, y=375)
-
-    running = True
+    game_state = INIT
     clock = pygame.time.Clock()
 
-    while running:
+    asteroid = Asteroid(x=400, y=375)
+    player_click = False
+    click_position = None
+
+    while game_state:
 
         clock.tick(FPS)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
-
-        update(asteroid)
-        draw_window(asteroid)
-
-    pygame.quit()
+                game_state = FINISH
+            if event.type == pygame.MOUSEBUTTONUP:
+                player_click = True
+                handle_asteroid_initial_velocity(asteroid)
+                
+        if game_state == INIT:
+            draw_window(asteroid)
+            game_state = RUNNING
+        if game_state == RUNNING:
+            
+            if not player_click:
+                continue
+            draw_window(asteroid)
+            update(asteroid)
+            
+        if game_state == FINISH:
+            pygame.quit()
+            
 
 if __name__ == "__main__":
     main()

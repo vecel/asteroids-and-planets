@@ -30,6 +30,10 @@ class Asteroid(Circle):
         self.acceleration_x = acc_x
         self.acceleration_y = acc_y
 
+    def set_velocity(self, vel_x, vel_y):
+        self.velocity_x = vel_x
+        self.velocity_y = vel_y
+
     def update(self):
 
         if self.collide:
