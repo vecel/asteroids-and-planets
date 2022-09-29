@@ -11,16 +11,21 @@ WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
 FPS = 60
 
 CAPTION = "Planets"
-BACKGROUND_COLOR = (121, 121, 200)
+BACKGROUND_COLOR = (21, 41, 76)
+CONSTANT_G = 100
+FINISH, INIT, RUNNING = range(3)
+LEFT_MOUSE_BUTTON = 1
+RIGHT_MOUSE_BUTTON = 3
+
+world_offset_x = WIDTH / 2
+world_offset_y = HEIGHT / 2
 
 # Sample
 PLANETS = [
-    Planet((67, 26, 9), 800, 0, 60, 300),
-    Planet((67, 225, 9), 0, 400, 60, -200),
-    # Planet((90, 80, 137), 400, 80, 80, 1000)
+    Planet((67, 26, 9), 200, 100, 50, 50),
+    # Planet((67, 26, 9), 200, -100, 50, 50),
+    # Planet((67, 216, 9), 500, 0, 80, -300)
 ]
-CONSTANT_G = 100
-FINISH, INIT, RUNNING = range(3)
 
 MAX_INIT_VELOCITY = 8
 INIT_VELOCITY_RADIUS = 300
@@ -84,19 +89,30 @@ def draw_window(asteroid: Asteroid):
 
 def update(asteroid: Asteroid):
     
+    global world_offset_x
+    global world_offset_y
+
+    world_offset_x -= asteroid.velocity_x
+    world_offset_y -= asteroid.velocity_y
+
+    for planet in PLANETS:
+        planet.set_x(planet.initial_x + world_offset_x)
+        planet.set_y(planet.initial_y + world_offset_y)
+
     handle_collisions(asteroid)
     handle_forces(asteroid)
-    
     asteroid.update()
+    
+    # print(asteroid.velocity_x, world_offset_x)
 
 def main():
 
     game_state = INIT
     clock = pygame.time.Clock()
 
-    asteroid = Asteroid(x=400, y=375)
+    asteroid = Asteroid(x=0, y=0)
     player_click = False
-    click_position = None
+    
 
     while game_state:
 
@@ -105,13 +121,24 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 game_state = FINISH
-            if event.type == pygame.MOUSEBUTTONUP:
+            if event.type == pygame.MOUSEBUTTONUP and event.button == LEFT_MOUSE_BUTTON:
                 player_click = True
                 handle_asteroid_initial_velocity(asteroid)
+            if event.type == pygame.MOUSEBUTTONUP and event.button == RIGHT_MOUSE_BUTTON:
+                player_click = True
                 
         if game_state == INIT:
+            
+            asteroid.set_x(world_offset_x)
+            asteroid.set_y(world_offset_y)
+
+            for planet in PLANETS:
+                planet.set_x(planet.initial_x + world_offset_x)
+                planet.set_y(planet.initial_y + world_offset_y)
+
             draw_window(asteroid)
             game_state = RUNNING
+
         if game_state == RUNNING:
             
             if not player_click:
